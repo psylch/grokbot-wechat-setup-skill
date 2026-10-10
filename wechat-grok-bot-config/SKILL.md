@@ -8,6 +8,12 @@ description: >-
 
 把微信（腾讯官方 ClawBot / iLink）接到 Grok Bot：用户在微信里给 ClawBot 发消息 → box 上转发器收到 → POST 到 Webhook routine → agent 用 `send.py` 回微信。
 
+## 背景资料（新 bot 先看这些）
+
+- 桥接代码与命令行工具：[psylch/grokbot-wechat](https://github.com/psylch/grokbot-wechat)。`bind.py` 扫码绑定，`forward.py` / `run_forward.sh` 转发器，`send.py` 回复和推送（exit 3 已排队，exit 4 被新消息取代），`watchdog.sh` 看门狗，`routines/` 里是两个 routine 模板。它的 README 写了架构、payload 格式、24 小时推送窗口和踩过的坑，动手前先读。
+- iLink 协议拆解：[WeChat ClawBot iLink protocol](https://www.chihao.li/blog/en/wechat-clawbot-ilink-protocol)
+- 腾讯官方参考实现：[@tencent-weixin/openclaw-weixin](https://www.npmjs.com/package/@tencent-weixin/openclaw-weixin)
+
 ## 原则
 
 - 一次只让用户做一件事；每步完成再进下一步。
