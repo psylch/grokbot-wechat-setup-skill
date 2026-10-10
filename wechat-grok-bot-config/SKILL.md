@@ -67,14 +67,24 @@ cp /tmp/wechat-setup/templates/active.md "$BRIDGE/active.md"
 **你做**
 
 1. 用 `UpdateRoutine` 建 Webhook routine「微信消息入口」，指令原样使用 skill 仓库 `routines/inbound-webhook.md`（`$BRIDGE` 换成实际路径）。
-2. 保存成功后，**在同一轮里连续发出**下面三样，不要等用户回「拿到了」再发下一步：
-   - 一条说明：这一步要在电脑版 Grok Bot 里做（手机打不开下面的链接）；点下面两个链接，复制里面的内容，然后**直接贴进紧跟着的两个安全输入框**，不要贴到聊天里。顺带一句这两样是干嘛的：「一个是微信消息要送到的地址，一个是开门的钥匙」。
-   - 只给两个**可点击的链接**，必须用这个格式（`<routine-folder-id>` 换成刚建的 routine 在 automation_status 里的 folder id；直接复制那里给出的 field links 最稳）：
-     - `[Webhook URL](grokbot://app/v1/sidebar?target=webhook-url&automation=<routine-folder-id>)`（点开后，复制「POST to」后面那一长串网址）
-     - `[Webhook key](grokbot://app/v1/sidebar?target=webhook-key&automation=<routine-folder-id>)`（点开后，复制「key」后面那串以 `crsr_` 开头的字符）
-     点开后电脑版会显示 routine 详情，Webhook 区有三行：POST to、key、header。**只需要前两行**，header 那行不用管。
-     **不要写「打开 Routines 里的…」「去侧边栏找…」这类点击路径**：侧边栏的 routine 列表点不进编辑页，用户会卡住。也不要给 Authorization header 链接。
-   - 紧接着发两个 secret-request：`WECHAT_WEBHOOK_URL`（label「微信入口 Webhook URL」）和 `WECHAT_WEBHOOK_KEY`（label「微信入口 Webhook key」）。
+2. 保存成功后，**在同一轮里连续发出**下面这些，不要等用户回「拿到了」再发下一步。用户可能完全不懂 Webhook，所以说明要讲清楚：链接是可以点的、点了会发生什么、在弹出的窗口里找什么、复制到哪儿。
+
+   先发一条说明 + 两个链接（同一条消息），**照这个模板写**（`<id>` 换成 automation_status 里该 routine 的 folder id，直接用那里给的 field links 最稳）：
+
+   > 下一步得在**电脑版** Grok Bot 里做，手机上点不开。这一步是把「微信消息往哪儿送」和「开门的钥匙」交给我，你只需要复制两段文字。
+   >
+   > 1. 点一下下面带 🌐 小图标的蓝色文字「Webhook URL」，屏幕**右边会弹出一个侧边窗口**。
+   > 2. 在侧边窗口里往下找到「**Webhook**」那一块，有三行：**POST to**、**key**、**header**。
+   > 3. 复制 **POST to** 后面那一长串网址（https 开头），粘到下面第一个安全输入框，点 Save。
+   > 4. 再复制 **key** 后面那串（crsr_ 开头），粘到第二个安全输入框，点 Save。header 那行不用管。
+   >
+   > 👉 点这里打开侧边窗口：[Webhook URL](grokbot://app/v1/sidebar?target=webhook-url&automation=<id>)（两个值都在同一个侧边窗口里，这一个点开就够了；也可以点 [Webhook key](grokbot://app/v1/sidebar?target=webhook-key&automation=<id>)，打开的是同一个窗口）
+   >
+   > 别把这两段贴到聊天里，贴进下面的输入框就行，我看不到明文。
+
+   然后紧接着发两个 secret-request：`WECHAT_WEBHOOK_URL`（label「① 粘贴 POST to 后面的网址」，description「https 开头的那一长串」）和 `WECHAT_WEBHOOK_KEY`（label「② 粘贴 key 后面那串」，description「crsr_ 开头的那串」）。输入框的标题要和上面说明里的步骤对得上。
+
+   **禁止**：写「打开 Routines 里的…」「去侧边栏找…」这类点击路径（侧边栏的 routine 列表点不进编辑页）；给 Authorization header 链接；只丢两个链接不解释点了会怎样。
 3. 两个都保存后写进 `$BRIDGE/.env`（从环境变量读，不回显）。
 
 ---
