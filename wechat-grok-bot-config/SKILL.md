@@ -47,81 +47,59 @@ cp /tmp/wechat-setup/templates/active.md "$BRIDGE/active.md"
 
 ---
 
-## 步骤 1：扫码绑定（UX 最重要）
-
-**你先做**
-
-1. 在 box 上启动（后台）：`python3 "$BRIDGE"/bind.py`。
-2. 等 `qr.png` 生成（同目录还有 `qr_url.txt`）。
-3. **立刻把二维码图片附件发给用户**（`SendToUser` type attachment，`file://$BRIDGE/qr.png`），不要只说「去目录里找」。
-
-**对用户说（模板）**
-
-> 请用**你想连接的那个微信**扫下面这张码，手机上点确认。  
-> 若手机显示一串数字，把数字发回来（我会写入验证文件）。  
-> 二维码会过期；过期了跟我说，我换一张再发你。
-
-**你等**
-
-- 监控 `bind.py` 输出：`confirmed` / `BOUND OK` → 继续；`need_verifycode` → 用户发来的数字写入 `$BRIDGE/verify_code.txt`；`expired` → 等新 `qr.png` 再附件发一次。
-- 成功后确认存在 `credentials.json`（权限 600），**不要**把内容读给用户看。
-- 告诉用户：「绑定成功。接下来在电脑上配 Webhook（手机打不开）。」
-
----
-
-## 步骤 2：入站 Webhook routine（必须电脑）
-
-**先明确告知**
-
-> 下一步要复制 Webhook 的 URL 和 Authorization。**这三个入口只能在电脑版 Grok Bot 里打开**（手机 App 点链接无法打开面板）。请切到 Mac/PC 继续。
+## 步骤 1：扫码绑定（你全程盯着，用户只管扫）
 
 **你做**
 
-1. 用 `UpdateRoutine` 创建一个 Webhook routine（名如「微信消息入口」），指令**原样使用** skill 仓库的 `routines/inbound-webhook.md`，只把 `$BRIDGE` 换成实际路径（它已经包含下面两条）：
-   - 每次先读 `$BRIDGE/active.md`（进行中事项）再回复，能看出接哪件事就不要再问「是谁/哪个站」。
-   - 用 `python3 $BRIDGE/send.py "…" --reply-to-ms <trigger_ms>` 回微信。
-2. 保存成功后，把自动化状态里的三个链接发给用户（用官方 pill 链接）：
-   - Webhook URL
-   - Webhook key
-   - Authorization header
-
-**对用户说（模板）**
-
-> 请在**电脑**上依次点开下面三个链接，复制内容：  
-> 1) Webhook URL  
-> 2) Webhook key（或直接复制 Authorization header）  
-> **不要贴到聊天里**。复制好后回我一句「拿到了」，我会用安全输入框收 key（或指导你把 URL+密钥写进 box 上的 `.env`）。
-
-**收密**
-
-- 优先：`secret-request` 收 `WECHAT_WEBHOOK_KEY`（和如果需要的 URL）；或让用户在桌面把值贴进 `$BRIDGE/.env` 后说「填好了」。
-- 写入 `.env`：`WECHAT_WEBHOOK_URL=...`、`WECHAT_WEBHOOK_KEY=...`。确认文件权限不对外可读。
+1. 后台启动 `python3 "$BRIDGE"/bind.py`，把输出写进日志文件。
+2. `qr.png` 一生成，立刻作为图片附件发给用户（`file://$BRIDGE/qr.png`）。
+3. 发码时一次说清：用想连接的那个微信扫，手机上点确认；**码大约两分钟有效，过期我会自动换新的发你**；手机若显示一串数字就发给我。
+4. **自己盯着，不等用户开口**：每隔几秒看一次 `bind.py` 日志。
+   - 出现新 QR（过期自动刷新）→ 马上把新 `qr.png` 发给用户，附一句「刚才那张过期了，用这张」。
+   - `need_verifycode` → 请用户发数字，写进 `$BRIDGE/verify_code.txt`。
+   - `confirmed` / `BOUND OK` → 不用等用户说「扫好了」，主动告诉他「绑定成功」，直接进入步骤 2。
+5. 成功后确认有 `credentials.json`（权限 600），内容不要给用户看。
 
 ---
 
-## 步骤 3：自检
+## 步骤 2：入口 Webhook（必须在电脑上，一口气发完）
+
+**你做**
+
+1. 用 `UpdateRoutine` 建 Webhook routine「微信消息入口」，指令原样使用 skill 仓库 `routines/inbound-webhook.md`（`$BRIDGE` 换成实际路径）。
+2. 保存成功后，**在同一轮里连续发出**下面三样，不要等用户回「拿到了」再发下一步：
+   - 一条说明：这一步要在电脑版 Grok Bot 里做（手机打不开下面的链接）；点下面两个链接，复制里面的内容，然后**直接贴进紧跟着的两个安全输入框**，不要贴到聊天里。顺带一句这两样是干嘛的：「一个是微信消息要送到的地址，一个是开门的钥匙」。
+   - 只给两个链接：**Webhook URL** 和 **Webhook key**（用 automation_status 里该 routine 的 pill 链接）。**不要给 Authorization header**，也**不要写「去 Routines 里点进去」这类点击路径**。
+   - 紧接着发两个 secret-request：`WECHAT_WEBHOOK_URL`（label「微信入口 Webhook URL」）和 `WECHAT_WEBHOOK_KEY`（label「微信入口 Webhook key」）。
+3. 两个都保存后写进 `$BRIDGE/.env`（从环境变量读，不回显）。
+
+---
+
+## 步骤 3：自检（你做）
 
 ```bash
 cd "$BRIDGE" && python3 forward.py --selftest
 ```
 
-期望 HTTP 200，并且入站 routine 被触发一次。失败：
-
-- 4xx：URL/密钥错，请用户在**电脑**上重新打开链接核对（别在手机上试）。
-- 网络/超时：稍后重试。
-
-通过后告诉用户：「Webhook 通了。」
+期望 HTTP 200，入口 routine 被触发一次。4xx 说明 URL 或 key 不对：请用户在电脑上重新复制，再发一次那两个安全输入框。成功不用单独告诉用户，直接进步骤 4。
 
 ---
 
-## 步骤 4：启动转发器
+## 步骤 4：启动转发器并主动发第一条微信（给用户确认感）
 
 ```bash
 cd "$BRIDGE" && nohup setsid ./run_forward.sh >/dev/null 2>&1 &
-tail -n 20 forward.log
 ```
 
-请用户在微信里给 ClawBot 发一句「你好」。你应收到 webhook 触发并用 `send.py --reply-to-ms …` 回一句。通了再进看门狗。
+启动后**你先主动往用户微信发一条**，不要先让用户去发：
+
+```bash
+python3 "$BRIDGE"/send.py --app "连上了！以后在微信里直接跟我说话就行，回我一句试试。"
+```
+
+- exit 0：在聊天里告诉用户「我刚往你微信发了一条，去看看」。
+- exit 3（排队）：说明推送窗口没开，请用户先在微信里给 ClawBot 随便发一句，排队的那条会自动补发。
+然后等用户在微信里回一句，确认来回都通，再进步骤 5。
 
 ---
 
@@ -171,7 +149,7 @@ tail -n 20 forward.log
 |---|---|
 | 手机点不开 Webhook 链接 | 换电脑客户端；你也看不到明文 URL/密钥 |
 | 扫码后要数字 | 把数字发你，你写入 `verify_code.txt` |
-| 二维码过期 | 你重发新 `qr.png` |
+| 二维码过期 | 你自己发现并主动重发新 `qr.png` |
 | 主动推送失败 | 24h 窗口关了，已排队；用户再说一句会补发 |
 | 回了几轮互相打架 | 确保用 `--reply-to-ms`；exit 4 就停 |
 | 看门狗和入站搞混 | 入站=Webhook；看门狗=定时，不需 URL |
@@ -184,6 +162,9 @@ tail -n 20 forward.log
 - 不要在没附二维码图的情况下让用户去扫码。
 - 不要开场问用户微信版本或是否开通 ClawBot。
 - 不要假设手机能打开 webhook 面板。
+- 不要给点击路径（如「去 Routines 里找」），只给可点的链接。
+- 不要给 Authorization header 链接，只给 URL 和 key 两个。
+- 不要让用户回「拿到了」「扫好了」才走下一步；你能自己检测的就自己检测。
 - 不要让用户把 Bearer key 贴进聊天。
 - 不要把看门狗建成 Webhook routine。
 - 不要在转发器已跑时再启一个或跑 `poll.py`。
