@@ -29,16 +29,18 @@ description: >-
 - 配 Webhook 需要电脑版 Grok Bot，这一点到步骤 2 前再说，不要开场就问。
 - 转发器默认跑在你的 box，不必问用户。
 
-代码仓库（若本地已有可复用副本则用副本）：`https://github.com/psylch/grokbot-wechat`。安装目录下文写作 `$BRIDGE`（例如 `/workspace/grokbot-wechat`）。
+**照搬，不要自由发挥。** 这是测试过的方案：程序、两个 routine 指令、`active.md` 机制都在 skill 仓库 [psylch/grokbot-wechat-setup-skill](https://github.com/psylch/grokbot-wechat-setup-skill) 里（`bridge/`、`routines/`、`templates/`、`MECHANISMS.md`）。原样安装，不要重写转发器、不要自己编 routine 指令。动手前先读 `MECHANISMS.md`。安装目录下文写作 `$BRIDGE`（例如 `/workspace/wechat-bridge`）。
 
 ---
 
 ## 步骤 0：安装（你做，不用用户动手）
 
 ```bash
-git clone https://github.com/psylch/grokbot-wechat.git "$BRIDGE" && cd "$BRIDGE"
+git clone https://github.com/psylch/grokbot-wechat-setup-skill.git /tmp/wechat-setup
+cp -r /tmp/wechat-setup/bridge "$BRIDGE" && cd "$BRIDGE"
 pip install -r requirements.txt
 cp .env.example .env
+cp /tmp/wechat-setup/templates/active.md "$BRIDGE/active.md"
 ```
 
 先把 `.env` 里 Webhook 留空。用户显示名写进 `OWNER_NAME`。安装好后告诉他：「代码就绪，接下来用微信扫码绑定。」
@@ -75,7 +77,7 @@ cp .env.example .env
 
 **你做**
 
-1. 用 `UpdateRoutine` 创建一个 Webhook routine（名如「微信消息入口」），指令基于仓库 `routines/inbound-webhook.md`，把路径换成 `$BRIDGE`，并加上：
+1. 用 `UpdateRoutine` 创建一个 Webhook routine（名如「微信消息入口」），指令**原样使用** skill 仓库的 `routines/inbound-webhook.md`，只把 `$BRIDGE` 换成实际路径（它已经包含下面两条）：
    - 每次先读 `$BRIDGE/active.md`（进行中事项）再回复，能看出接哪件事就不要再问「是谁/哪个站」。
    - 用 `python3 $BRIDGE/send.py "…" --reply-to-ms <trigger_ms>` 回微信。
 2. 保存成功后，把自动化状态里的三个链接发给用户（用官方 pill 链接）：
@@ -125,7 +127,7 @@ tail -n 20 forward.log
 
 ## 步骤 5：看门狗（每 15 分钟）
 
-创建**定时** routine（不是 Webhook），名如「微信转发看门狗」，cron 约 `7,22,37,52 * * * *`（或用户时区下每 15 分钟），指令基于 `routines/watchdog.md`：
+创建**定时** routine（不是 Webhook），名如「微信转发看门狗」，cron 约 `7,22,37,52 * * * *`（或用户时区下每 15 分钟），指令原样使用 skill 仓库的 `routines/watchdog.md`（路径换成 `$BRIDGE`）：
 
 ```
 运行 bash $BRIDGE/watchdog.sh
@@ -140,7 +142,7 @@ tail -n 20 forward.log
 
 ## 步骤 6：进行中事项（推荐）
 
-创建 `$BRIDGE/active.md`（表格：时间｜事项｜链接｜负责｜状态｜在等什么）。
+`$BRIDGE/active.md` 已在步骤 0 从模板拷好（每条：时间｜事项｜链接｜负责｜状态｜在等什么）。同时给主 bot 存一条长期记忆：App 侧推任务相关微信时同步更新它。
 
 规则（写进记忆/入站 routine）：
 
@@ -185,3 +187,4 @@ tail -n 20 forward.log
 - 不要让用户把 Bearer key 贴进聊天。
 - 不要把看门狗建成 Webhook routine。
 - 不要在转发器已跑时再启一个或跑 `poll.py`。
+- 不要自己重写转发器、send 脚本或 routine 指令；用仓库里测试过的版本。
