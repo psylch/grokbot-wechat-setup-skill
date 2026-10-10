@@ -69,7 +69,11 @@ cp /tmp/wechat-setup/templates/active.md "$BRIDGE/active.md"
 1. 用 `UpdateRoutine` 建 Webhook routine「微信消息入口」，指令原样使用 skill 仓库 `routines/inbound-webhook.md`（`$BRIDGE` 换成实际路径）。
 2. 保存成功后，**在同一轮里连续发出**下面三样，不要等用户回「拿到了」再发下一步：
    - 一条说明：这一步要在电脑版 Grok Bot 里做（手机打不开下面的链接）；点下面两个链接，复制里面的内容，然后**直接贴进紧跟着的两个安全输入框**，不要贴到聊天里。顺带一句这两样是干嘛的：「一个是微信消息要送到的地址，一个是开门的钥匙」。
-   - 只给两个链接：**Webhook URL** 和 **Webhook key**（用 automation_status 里该 routine 的 pill 链接）。**不要给 Authorization header**，也**不要写「去 Routines 里点进去」这类点击路径**。
+   - 只给两个**可点击的链接**，必须用这个格式（`<routine-folder-id>` 换成刚建的 routine 在 automation_status 里的 folder id；直接复制那里给出的 field links 最稳）：
+     - `[Webhook URL](grokbot://app/v1/sidebar?target=webhook-url&automation=<routine-folder-id>)`（点开后，复制「POST to」后面那一长串网址）
+     - `[Webhook key](grokbot://app/v1/sidebar?target=webhook-key&automation=<routine-folder-id>)`（点开后，复制「key」后面那串以 `crsr_` 开头的字符）
+     点开后电脑版会显示 routine 详情，Webhook 区有三行：POST to、key、header。**只需要前两行**，header 那行不用管。
+     **不要写「打开 Routines 里的…」「去侧边栏找…」这类点击路径**：侧边栏的 routine 列表点不进编辑页，用户会卡住。也不要给 Authorization header 链接。
    - 紧接着发两个 secret-request：`WECHAT_WEBHOOK_URL`（label「微信入口 Webhook URL」）和 `WECHAT_WEBHOOK_KEY`（label「微信入口 Webhook key」）。
 3. 两个都保存后写进 `$BRIDGE/.env`（从环境变量读，不回显）。
 
